@@ -12,7 +12,7 @@ var app = angular.module( 'WMSAPP', [
     'WMSAPP.controllers'
 ] );
 app.run( [ 'ENV', '$ionicPlatform', '$rootScope', '$state', '$location', '$timeout', '$ionicPopup', '$ionicHistory', '$ionicLoading', '$cordovaKeyboard', '$cordovaToast', '$cordovaFile',
-    function( ENV, $ionicPlatform, $rootScope, $state, $location, $timeout, $ionicPopup, $ionicHistory, $ionicLoading, $$cordovaKeyboard, $cordovaToast, $cordovaFile ) {
+    function( ENV, $ionicPlatform, $rootScope, $state, $location, $timeout, $ionicPopup, $ionicHistory, $ionicLoading, $cordovaKeyboard, $cordovaToast, $cordovaFile ) {
         $ionicPlatform.ready( function() {
             // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
             // for form inputs)
@@ -21,13 +21,15 @@ app.run( [ 'ENV', '$ionicPlatform', '$rootScope', '$state', '$location', '$timeo
                 $cordovaKeyboard.hideAccessoryBar(true);
                 $cordovaKeyboard.disableScroll(true);
                 //
-                var data = 'website=' + ENV.website + '##api=' + ENV.api + '##ssl=' + ENV.ssl;
-                var path = cordova.file.externalRootDirectory;
+                  var path = cordova.file.externalRootDirectory;
                 var directory = ENV.rootPath;
                 var file = directory + '/' + ENV.configFile;
                 $cordovaFile.createDir( path, directory, false )
                     .then( function( success ) {
-                        $cordovaFile.writeFile( path, file, data, true )
+                      ENV.website=appendProtocol(ENV.website,false,ENV.port);
+                      ENV.api=appendProtocol(ENV.api,false,ENV.port);
+                       var data = 'website=' +ENV.website + '##api=' + ENV.api + '##ssl=' + ENV.ssl;
+                            $cordovaFile.writeFile( path, file, data, true )
                             .then( function( success ) {
                                 //
                             }, function( error ) {
