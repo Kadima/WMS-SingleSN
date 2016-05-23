@@ -11,16 +11,19 @@ using WebApi.ServiceModel.Tables;
 namespace WebApi.ServiceModel.Wms
 {
 
-				[Route("/wms/imgi1", "Get")]				//imgi1?GoodsIssueNoteNo= & CustomerCode=
-				[Route("/wms/imgi1/complete", "Get")]				//complete?GoodsIssueNoteNo= &UserID=
-				[Route("/wms/imgi2", "Get")]				//imgi2?GoodsIssueNoteNo=
-				[Route("/wms/imgi2/picking", "Get")]				//picking?GoodsIssueNoteNo=
-				[Route("/wms/imgi2/verify", "Get")]					//verify?GoodsIssueNoteNo=
+				[Route("/wms/imgi1", "Get")]																				//imgi1?GoodsIssueNoteNo= & CustomerCode=
+				[Route("/wms/imgi1/complete", "Get")]											//complete?GoodsIssueNoteNo= &UserID=
+				[Route("/wms/imgi1/confirm", "Get")]												//confirm?GoodsIssueNoteNo= &UserID=
+				[Route("/wms/imgi2", "Get")]																				//imgi2?GoodsIssueNoteNo=
+				[Route("/wms/imgi2/picking", "Get")]												//picking?GoodsIssueNoteNo=
+				[Route("/wms/imgi2/verify", "Get")]													//verify?GoodsIssueNoteNo=
+				[Route("/wms/imgi2/update/packingno", "Post")]		//packingno
     public class Imgi : IReturn<CommonResponse>
     {
         public string CustomerCode { get; set; }
         public string GoodsIssueNoteNo { get; set; }
 								public string UserID { get; set; }
+								public List<Imgi2_Picking> Imgi2s { get; set; }
     }
     public class Imgi_Logic
     {
@@ -41,7 +44,7 @@ namespace WebApi.ServiceModel.Wms
                     else if (!string.IsNullOrEmpty(request.GoodsIssueNoteNo))
                     {
                         Result = db.SelectParam<Imgi1>(
-                            i => i.CustomerCode != null && i.CustomerCode != "" && i.StatusCode != null && i.StatusCode != "DEL" && i.StatusCode!="EXE" && i.StatusCode!="CMP" && i.GoodsIssueNoteNo.StartsWith(request.GoodsIssueNoteNo)
+																												i => i.CustomerCode != null && i.CustomerCode != "" && i.StatusCode != null && i.StatusCode != "DEL" && i.StatusCode != "EXE" && i.StatusCode != "CMP" && i.GoodsIssueNoteNo.StartsWith(request.GoodsIssueNoteNo)
                         ).OrderByDescending(i => i.IssueDateTime).ToList<Imgi1>();
                     }                  
                 }
@@ -56,13 +59,12 @@ namespace WebApi.ServiceModel.Wms
 												{
 																using (var db = DbConnectionFactory.OpenDbConnection())
 																{
-																				List<Impa1> impa1 = db.Select<Impa1>("Select * from Impa1");
-																				string strBarCodeFiled = impa1[0].BarCodeField;
 																				string strSql = "Select RowNum = ROW_NUMBER() OVER (ORDER BY Imgi2.StoreNo ASC), " +
-																								"Imgi2.*, " +
-																								"(Select Top 1 UserDefine1 From Impm1 Where TrxNo=Imgi2.ReceiptMovementTrxNo) AS SerialNo," + 
-																								"(Select Top 1 " + strBarCodeFiled + " From Impr1 Where TrxNo=Imgi2.ProductTrxNo) AS BarCode," +
-																								"(Select Top 1 SerialNoFlag From Impr1 Where TrxNo=Imgi2.ProductTrxNo) AS SerialNoFlag," +
+																								"Imgi2.TrxNo, Imgi2.LineItemNo, Imgi2.ProductTrxNo," +
+																								"IsNull(Imgi2.StoreNo,'') AS StoreNo, IsNull(Imgi2.ProductCode,'') AS ProductCode," +
+																								"IsNull(Imgi2.ProductDescription,'') AS ProductDescription," +
+																								"IsNull(Imgi2.PackingNo,'') AS PackingNo," +
+																								"(Select Top 1 SerialNo From Impm1 Where TrxNo=Imgi2.ReceiptMovementTrxNo) AS SerialNo," +
 																								"(CASE Imgi2.DimensionFlag When '1' THEN Imgi2.PackingQty When '2' THEN Imgi2.WholeQty ELSE Imgi2.LooseQty END) AS Qty, " +
 																								"0 AS QtyBal, 0 AS ScanQty " +
 																								"From Imgi2 " +
@@ -81,13 +83,11 @@ namespace WebApi.ServiceModel.Wms
 												{
 																using (var db = DbConnectionFactory.OpenDbConnection())
 																{
-																				List<Impa1> impa1 = db.Select<Impa1>("Select * from Impa1");
-																				string strBarCodeFiled = impa1[0].BarCodeField;
 																				string strSql = "Select RowNum = ROW_NUMBER() OVER (ORDER BY Imgi2.StoreNo ASC), " +
-																								"Imgi2.*, " +
-																								"(Select Top 1 UserDefine1 From Impm1 Where TrxNo=Imgi2.ReceiptMovementTrxNo) AS SerialNo," + 
-																								"(Select Top 1 " + strBarCodeFiled + " From Impr1 Where TrxNo=Imgi2.ProductTrxNo) AS BarCode," +
-																								"(Select Top 1 SerialNoFlag From Impr1 Where TrxNo=Imgi2.ProductTrxNo) AS SerialNoFlag," +
+																								"Imgi2.TrxNo, Imgi2.LineItemNo, Imgi2.ProductTrxNo," +
+																								"IsNull(Imgi2.StoreNo,'') AS StoreNo, IsNull(Imgi2.ProductCode,'') AS ProductCode," +
+																								"IsNull(Imgi2.ProductDescription,'') AS ProductDescription," +
+																								"(Select Top 1 SerialNo From Impm1 Where TrxNo=Imgi2.ReceiptMovementTrxNo) AS SerialNo," +
 																								"(CASE Imgi2.DimensionFlag When '1' THEN Imgi2.PackingQty When '2' THEN Imgi2.WholeQty ELSE Imgi2.LooseQty END) AS Qty, " +
 																								"0 AS QtyBal, 0 AS ScanQty " +
 																								"From Imgi2 " +
@@ -106,6 +106,7 @@ namespace WebApi.ServiceModel.Wms
 												{
 																using (var db = DbConnectionFactory.OpenDbConnection())
 																{
+																				/*
 																				Result = db.Update<Imgi1>(
 																								new
 																								{
@@ -115,6 +116,69 @@ namespace WebApi.ServiceModel.Wms
 																								},
 																								p => p.GoodsIssueNoteNo == request.GoodsIssueNoteNo
 																				);
+																				if (Result > -1)
+																				{
+																				 * */
+																				db.Insert(
+																								new Imsl1
+																								{
+																												DocNo = request.GoodsIssueNoteNo,
+																												Description = "PICKED",
+																												StatusLogDateTime = DateTime.Now,
+																												UserId = request.UserID,
+																												StatusCode = "CMP",
+																												UpdateBy = request.UserID,
+																												UpdateDateTime = DateTime.Now
+																								}
+																				);
+																				Result = 0;
+																}
+												}
+												catch { throw; }
+												return Result;
+								}
+								public int Confirm_Imgi1(Imgi request)
+								{
+												int Result = -1;
+												try
+												{
+																using (var db = DbConnectionFactory.OpenDbConnection())
+																{
+																				db.Insert(
+																								new Imsl1
+																								{
+																												DocNo = request.GoodsIssueNoteNo,
+																												Description = "VERIFIED",
+																												StatusLogDateTime = DateTime.Now,
+																												UserId = request.UserID,
+																												StatusCode = "CMP",
+																												UpdateBy = request.UserID,
+																												UpdateDateTime = DateTime.Now
+																								}
+																				);
+																				Result = 0;
+																}
+												}
+												catch { throw; }
+												return Result;
+								}
+								public int Update_Imgi2_PackingNo(Imgi request)
+								{
+												int Result = -1;
+												try
+												{
+																using (var db = DbConnectionFactory.OpenDbConnection())
+																{
+																				foreach (Imgi2_Picking i2 in request.Imgi2s)
+																				{
+																								Result = db.Update<Imgi2>(
+																												new
+																												{
+																																PackingNo = i2.PackingNo
+																												},
+																												p => p.TrxNo == i2.TrxNo && p.LineItemNo == i2.LineItemNo
+																								);
+																				}																				
 																}
 												}
 												catch { throw; }

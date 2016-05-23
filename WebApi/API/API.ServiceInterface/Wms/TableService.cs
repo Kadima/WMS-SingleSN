@@ -8,7 +8,24 @@ using WebApi.ServiceModel.Wms;
 namespace WebApi.ServiceInterface.Wms
 {
     public class TableService
-    {
+				{
+								public void TS_Impa(Auth auth, Impa request, Impa_Logic impa_Logic, CommonResponse ecr, string[] token, string uri)
+								{
+												if (auth.AuthResult(token, uri))
+												{
+																if (uri.IndexOf("/wms/impa1") > 0)
+																{
+																				ecr.data.results = impa_Logic.Get_Impa1_List(request);
+																}
+																ecr.meta.code = 200;
+																ecr.meta.message = "OK";
+												}
+												else
+												{
+																ecr.meta.code = 401;
+																ecr.meta.message = "Unauthorized";
+												}
+								}								
 								public void TS_Rcbp(Auth auth, Rcbp request, Rcbp_Logic rcbp_Logic, CommonResponse ecr, string[] token, string uri)
 								{
 												if (auth.AuthResult(token, uri))
@@ -101,13 +118,21 @@ namespace WebApi.ServiceInterface.Wms
         {
             if (auth.AuthResult(token, uri))
             {
-																if (uri.IndexOf("/wms/imgi1/complete") > 0)
+																if (uri.IndexOf("/wms/imgi1/confirm") > 0)
+																{
+																				ecr.data.results = imgi_Logic.Confirm_Imgi1(request);
+																}
+																else if (uri.IndexOf("/wms/imgi1/complete") > 0)
 																{
 																				ecr.data.results = imgi_Logic.Complete_Imgi1(request);
 																}
 																else if (uri.IndexOf("/wms/imgi1") > 0)
 																{
 																				ecr.data.results = imgi_Logic.Get_Imgi1_List(request);
+																}
+																else if (uri.IndexOf("/wms/imgi2/update/packingno") > 0)
+																{
+																				ecr.data.results = imgi_Logic.Update_Imgi2_PackingNo(request);
 																}
 																else if (uri.IndexOf("/wms/imgi2/picking") > 0)
 																{
